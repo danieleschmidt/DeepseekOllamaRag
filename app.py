@@ -1,34 +1,45 @@
 import streamlit as st
-from langchain_community.document_loaders import PDFPlumberLoader
-from langchain_experimental.text_splitter import SemanticChunker
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
-from langchain_community.llms import Ollama
-from langchain.prompts import PromptTemplate
-from langchain.chains.llm import LLMChain
-from langchain.chains.combine_documents.stuff import StuffDocumentsChain
-from langchain.chains import RetrievalQA
+import logging
+from datetime import datetime
+from typing import Optional
 
-# Define color palette with improved contrast
-primary_color = "#007BFF"  # Bright blue for primary buttons
-secondary_color = "#FFC107"  # Amber for secondary buttons
-background_color = "#F8F9FA"  # Light gray for the main background
-sidebar_background = "#2C2F33"  # Dark gray for sidebar (better contrast)
-text_color = "#212529"  # Dark gray for content text
-sidebar_text_color = "#FFFFFF"  # White text for sidebar
-header_text_color = "#000000"  # Black headings for better visibility
+from config import config
+from core import RAGPipeline
+from utils import (
+    init_session_state, check_session_timeout, reset_session,
+    save_uploaded_file, validate_file, cleanup_temp_files,
+    format_file_size, get_file_info, check_ollama_connection
+)
+from exceptions import (
+    DeepSeekRAGException, DocumentProcessingError,
+    LLMError, ValidationError, OllamaConnectionError
+)
 
-st.markdown("""
+# Configure Streamlit page
+st.set_page_config(
+    page_title=config.ui.page_title,
+    page_icon="📄",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Initialize session state and logging
+init_session_state()
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Apply custom styling
+st.markdown(f"""
     <style>
     /* Main Background */
     .stApp {{
-        background-color: #F8F9FA;
+        background-color: {config.ui.background_color};
         color: #212529;
     }}
 
     /* Sidebar Styling */
     [data-testid="stSidebar"] {{
-        background-color: #2C2F33 !important;
+        background-color: {config.ui.sidebar_background} !important;
         color: #FFFFFF !important;
     }}
     [data-testid="stSidebar"] * {{
@@ -49,114 +60,278 @@ st.markdown("""
 
     /* File Uploader */
     .stFileUploader>div>div>div>button {{
-        background-color: #FFC107;
+        background-color: {config.ui.secondary_color};
         color: #000000;
         font-weight: bold;
         border-radius: 8px;
     }}
 
-    /* Fix Navigation Bar (Top Bar) */
-    header {{
-        background-color: #1E1E1E !important;
+    /* Primary Button */
+    .stButton>button {{
+        background-color: {config.ui.primary_color};
+        color: white;
+        border-radius: 8px;
     }}
-    header * {{
-        color: #FFFFFF !important;
+
+    /* Error/Success Messages */
+    .stAlert {{
+        border-radius: 8px;
+    }}
+
+    /* Progress Bar */
+    .stProgress > div > div {{
+        background-color: {config.ui.primary_color};
     }}
     </style>
 """, unsafe_allow_html=True)
 
+# Check session timeout
+if check_session_timeout():
+    st.warning("Your session has expired. Please refresh the page.")
+    if st.button("Reset Session"):
+        reset_session()
+        st.rerun()
+
+# Check Ollama connection
+if not check_ollama_connection():
+    st.error("⚠️ Cannot connect to Ollama. Please ensure Ollama is running.")
+    st.info(f"Expected Ollama URL: {config.model.ollama_base_url}")
+    st.stop()
 
 # App title
-st.title("📄 Build a RAG System with DeepSeek R1 & Ollama")
+st.title(config.ui.app_title)
+
+# Clean up old temp files
+cleanup_temp_files()
+
+# Initialize RAG pipeline
+if "rag_pipeline" not in st.session_state:
+    try:
+        st.session_state.rag_pipeline = RAGPipeline()
+    except Exception as e:
+        st.error(f"Failed to initialize RAG pipeline: {str(e)}")
+        st.stop()
 
 # Sidebar for instructions and settings
 with st.sidebar:
-    st.header("Instructions")
+    st.header("📋 Instructions")
     st.markdown("""
-    1. Upload a PDF file using the uploader below.
-    2. Ask questions related to the document.
-    3. The system will retrieve relevant content and provide a concise answer.
+    1. **Upload** a PDF file using the uploader below
+    2. **Wait** for processing to complete
+    3. **Ask** questions related to the document content
+    4. **Review** answers with source references
     """)
 
-    st.header("Settings")
-    st.markdown("""
-    - **Embedding Model**: HuggingFace
-    - **Retriever Type**: Similarity Search
-    - **LLM**: DeepSeek R1 (Ollama)
+    st.header("⚙️ System Status")
+    
+    # Ollama connection status
+    if check_ollama_connection():
+        st.success("✅ Ollama Connected")
+    else:
+        st.error("❌ Ollama Disconnected")
+    
+    # Current configuration
+    st.markdown(f"""
+    **Current Configuration:**
+    - **Model**: `{config.model.llm_model}`
+    - **Embeddings**: `{config.model.embedding_model.split('/')[-1]}`
+    - **Search Results**: {config.vector_store.similarity_search_k}
+    - **Max File Size**: {config.app.max_file_size_mb}MB
     """)
+    
+    # Session info
+    if "session_start" in st.session_state:
+        session_duration = datetime.now() - st.session_state.session_start
+        st.markdown(f"**Session Duration**: {str(session_duration).split('.')[0]}")
+    
+    # Upload history
+    if st.session_state.upload_history:
+        st.header("📁 Upload History")
+        for i, upload in enumerate(st.session_state.upload_history[-3:]):
+            st.markdown(f"**{i+1}.** {upload['name']} ({upload['size']})")
+    
+    # Reset button
+    if st.button("🔄 Reset Session", key="reset_sidebar"):
+        reset_session()
+        st.rerun()
 
-# Main file uploader section
-st.header("📁 Upload a PDF Document")
-uploaded_file = st.file_uploader("Upload your PDF file here", type="pdf")
+# Main content area
+col1, col2 = st.columns([2, 1])
 
-if uploaded_file is not None:
-    st.success("PDF uploaded successfully! Processing...")
-
-    # Save the uploaded file
-    with open("temp.pdf", "wb") as f:
-        f.write(uploaded_file.getvalue())
-
-    # Load the PDF
-    loader = PDFPlumberLoader("temp.pdf")
-    docs = loader.load()
-
-    # Split the document into chunks
-    st.subheader("📚 Splitting the document into chunks...")
-    text_splitter = SemanticChunker(HuggingFaceEmbeddings())
-    documents = text_splitter.split_documents(docs)
-
-    # Instantiate the embedding model
-    embedder = HuggingFaceEmbeddings()
-
-    # Create vector store and retriever
-    st.subheader("🔍 Creating embeddings and setting up the retriever...")
-    vector = FAISS.from_documents(documents, embedder)
-    retriever = vector.as_retriever(search_type="similarity", search_kwargs={"k": 3})
-
-    # Define the LLM and the prompt
-    llm = Ollama(model="deepseek-r1:1.5b")
-    prompt = """
-    1. Use the following pieces of context to answer the question at the end.
-    2. If you don't know the answer, just say that "I don't know" but don't make up an answer on your own.\n
-    3. Keep the answer crisp and limited to 3,4 sentences.
-    Context: {context}
-    Question: {question}
-    Helpful Answer:"""
-    QA_CHAIN_PROMPT = PromptTemplate.from_template(prompt)
-
-    # Define the document and combination chains
-    llm_chain = LLMChain(llm=llm, prompt=QA_CHAIN_PROMPT, verbose=True)
-    document_prompt = PromptTemplate(
-        input_variables=["page_content", "source"],
-        template="Context:\ncontent:{page_content}\nsource:{source}",
+with col1:
+    st.header("📁 Upload Document")
+    
+    uploaded_file = st.file_uploader(
+        "Choose a PDF file",
+        type=config.app.allowed_file_types,
+        help=f"Maximum file size: {config.app.max_file_size_mb}MB"
     )
-    combine_documents_chain = StuffDocumentsChain(
-        llm_chain=llm_chain,
-        document_variable_name="context",
-        document_prompt=document_prompt,
-        verbose=True
+    
+    if uploaded_file is not None:
+        try:
+            # Validate file
+            validate_file(uploaded_file)
+            
+            # Display file info
+            file_size = len(uploaded_file.getvalue())
+            st.info(f"📄 **{uploaded_file.name}** ({format_file_size(file_size)})")
+            
+            # Check if this file was already processed
+            file_hash = str(hash(uploaded_file.getvalue()))
+            
+            if file_hash in st.session_state.processed_documents:
+                st.success("✅ Document already processed! You can ask questions below.")
+                st.session_state.vector_store = st.session_state.processed_documents[file_hash]['vector_store']
+                st.session_state.qa_chain = st.session_state.processed_documents[file_hash]['qa_chain']
+            else:
+                # Process new document
+                with st.spinner("🔄 Processing document..."):
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    
+                    try:
+                        # Save uploaded file
+                        status_text.text("💾 Saving file...")
+                        progress_bar.progress(20)
+                        file_path = save_uploaded_file(uploaded_file)
+                        
+                        # Process document
+                        status_text.text("📖 Processing document...")
+                        progress_bar.progress(60)
+                        vector_store, qa_chain = st.session_state.rag_pipeline.process_document(file_path)
+                        
+                        # Store in session
+                        status_text.text("💾 Storing results...")
+                        progress_bar.progress(90)
+                        
+                        st.session_state.vector_store = vector_store
+                        st.session_state.qa_chain = qa_chain
+                        st.session_state.processed_documents[file_hash] = {
+                            'vector_store': vector_store,
+                            'qa_chain': qa_chain,
+                            'file_name': uploaded_file.name,
+                            'processed_at': datetime.now()
+                        }
+                        
+                        # Add to upload history
+                        st.session_state.upload_history.append({
+                            'name': uploaded_file.name,
+                            'size': format_file_size(file_size),
+                            'timestamp': datetime.now()
+                        })
+                        
+                        progress_bar.progress(100)
+                        status_text.text("✅ Processing complete!")
+                        
+                        # Clean up temp file
+                        try:
+                            import os
+                            os.remove(file_path)
+                        except:
+                            pass
+                        
+                        st.success("🎉 Document processed successfully! You can now ask questions.")
+                        
+                    except Exception as e:
+                        progress_bar.empty()
+                        status_text.empty()
+                        if isinstance(e, DeepSeekRAGException):
+                            st.error(f"❌ {str(e)}")
+                        else:
+                            st.error(f"❌ Unexpected error: {str(e)}")
+                            logger.error(f"Document processing error: {str(e)}", exc_info=True)
+                        
+        except ValidationError as e:
+            st.error(f"❌ Validation Error: {str(e)}")
+        except Exception as e:
+            st.error(f"❌ Unexpected error: {str(e)}")
+            logger.error(f"File upload error: {str(e)}", exc_info=True)
+
+with col2:
+    if uploaded_file is not None and st.session_state.qa_chain is not None:
+        st.header("📊 Document Stats")
+        
+        # Display document statistics
+        try:
+            # Get vector store stats
+            if hasattr(st.session_state.vector_store, 'index'):
+                vector_count = st.session_state.vector_store.index.ntotal
+                st.metric("Document Chunks", vector_count)
+            
+            st.metric("Model", config.model.llm_model.split(':')[0])
+            st.metric("Search Results", config.vector_store.similarity_search_k)
+            
+        except Exception as e:
+            st.warning("Could not load document statistics")
+
+# Question and Answer Section
+if st.session_state.qa_chain is not None:
+    st.header("❓ Ask Questions")
+    
+    # Question input
+    user_question = st.text_input(
+        "Enter your question about the document:",
+        placeholder="What is the main topic of this document?"
     )
-
-    qa = RetrievalQA(
-        combine_documents_chain=combine_documents_chain,
-        retriever=retriever,
-        verbose=True,
-        return_source_documents=True
-    )
-
-    # Question input and response display
-    st.header("❓ Ask a Question")
-    user_input = st.text_input("Type your question related to the document:")
-
-    if user_input:
-        with st.spinner("Processing your query..."):
+    
+    col1, col2, col3 = st.columns([1, 1, 2])
+    
+    with col1:
+        ask_button = st.button("🔍 Ask Question", type="primary")
+    
+    with col2:
+        if st.button("🗑️ Clear History"):
+            if "qa_history" in st.session_state:
+                st.session_state.qa_history = []
+                st.rerun()
+    
+    # Process question
+    if ask_button and user_question.strip():
+        with st.spinner("🤔 Thinking..."):
             try:
-                response = qa(user_input)["result"]
-                st.success("✅ Response:")
-                st.write(response)
+                response = st.session_state.rag_pipeline.ask_question(
+                    st.session_state.qa_chain,
+                    user_question
+                )
+                
+                # Store in history
+                if "qa_history" not in st.session_state:
+                    st.session_state.qa_history = []
+                
+                st.session_state.qa_history.append({
+                    'question': user_question,
+                    'answer': response['answer'],
+                    'sources': response['source_documents'],
+                    'timestamp': datetime.now()
+                })
+                
+                st.success("✅ Question processed successfully!")
+                
             except Exception as e:
-                st.error(f"An error occurred: {e}")
+                if isinstance(e, DeepSeekRAGException):
+                    st.error(f"❌ {str(e)}")
+                else:
+                    st.error(f"❌ Unexpected error: {str(e)}")
+                    logger.error(f"Question processing error: {str(e)}", exc_info=True)
+    
+    # Display Q&A History
+    if "qa_history" in st.session_state and st.session_state.qa_history:
+        st.header("💬 Q&A History")
+        
+        for i, qa in enumerate(reversed(st.session_state.qa_history[-5:])):
+            with st.expander(f"Q{len(st.session_state.qa_history)-i}: {qa['question'][:50]}...", expanded=(i==0)):
+                st.markdown(f"**Question:** {qa['question']}")
+                st.markdown(f"**Answer:** {qa['answer']}")
+                
+                if qa['sources']:
+                    st.markdown("**Sources:**")
+                    for j, source in enumerate(qa['sources'][:2]):
+                        content_preview = source.page_content[:200] + "..." if len(source.page_content) > 200 else source.page_content
+                        st.markdown(f"*Source {j+1}:* {content_preview}")
+                
+                st.markdown(f"*Asked at: {qa['timestamp'].strftime('%H:%M:%S')}*")
+
 else:
-    st.info("Please upload a PDF file to start.")
+    st.info("👆 Please upload a PDF document to get started.")
 
 

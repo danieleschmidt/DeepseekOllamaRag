@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: deepseek-rag-config
+  namespace: deepseek-rag
+data:
+  # Application configuration
+  DEBUG: "false"
+  LLM_MODEL: "deepseek-r1:1.5b"
+  EMBEDDING_MODEL: "sentence-transformers/all-MiniLM-L6-v2"
+  EMBEDDING_DEVICE: "cpu"
+  OLLAMA_BASE_URL: "http://ollama-service:11434"
+  MAX_FILE_SIZE_MB: "50"
+  SESSION_TIMEOUT_MINUTES: "30"
+  SIMILARITY_SEARCH_K: "3"
+  CHUNK_SIZE: "1000"
+  CHUNK_OVERLAP: "200"
+  
+  # UI configuration
+  APP_TITLE: "🔍 DeepSeek RAG System"
+  PAGE_TITLE: "DeepSeek Ollama RAG"
+  PRIMARY_COLOR: "#007BFF"
+  SECONDARY_COLOR: "#FFC107"
+  
+  # Cache configuration
+  CACHE_TTL_SECONDS: "3600"
+  MEMORY_CACHE_SIZE: "100"
+  DISK_CACHE_SIZE_MB: "500"
+  
+  # Monitoring configuration
+  ENABLE_MONITORING: "true"
+  METRICS_INTERVAL_SECONDS: "60"
+  
+  # Security configuration
+  ENABLE_RATE_LIMITING: "true"
+  RATE_LIMIT_REQUESTS: "30"
+  RATE_LIMIT_WINDOW_SECONDS: "60"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: deepseek-rag-secrets
+  namespace: deepseek-rag
+type: Opaque
+data:
+  # Base64 encoded secrets
+  # In production, these would be generated securely
+  SESSION_SECRET: "ZGVlcHNlZWstcmFnLXNlY3JldC1rZXk="  # deepseek-rag-secret-key
+  API_KEY: "YXBpLWtleS1mb3ItZXh0ZXJuYWwtc2VydmljZXM="    # api-key-for-external-services
