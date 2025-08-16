@@ -1,0 +1,177 @@
+groups:
+- name: deepseek-rag-alerts
+  rules:
+  
+  # Application Health Alerts
+  - alert: DeepSeekRAGDown
+    expr: up{job="deepseek-rag"} == 0
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "DeepSeek RAG application is down"
+      description: "DeepSeek RAG application has been down for more than 5 minutes."
+
+  - alert: OllamaServiceDown
+    expr: up{job="ollama"} == 0
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Ollama service is down"
+      description: "Ollama service has been down for more than 5 minutes."
+
+  - alert: RedisDown
+    expr: up{job="redis"} == 0
+    for: 3m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Redis cache is down"
+      description: "Redis cache has been down for more than 3 minutes."
+
+  # Performance Alerts
+  - alert: HighResponseTime
+    expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="deepseek-rag"}[5m])) > 10
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High response time detected"
+      description: "95th percentile response time is above 10 seconds for more than 10 minutes."
+
+  - alert: HighErrorRate
+    expr: rate(http_requests_total{job="deepseek-rag",status=~"5.."}[5m]) / rate(http_requests_total{job="deepseek-rag"}[5m]) > 0.1
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High error rate detected"
+      description: "Error rate is above 10% for more than 5 minutes."
+
+  # Resource Usage Alerts
+  - alert: HighCPUUsage
+    expr: rate(container_cpu_usage_seconds_total{container="deepseek-rag"}[5m]) * 100 > 80
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High CPU usage"
+      description: "CPU usage is above 80% for more than 10 minutes."
+
+  - alert: HighMemoryUsage
+    expr: (container_memory_usage_bytes{container="deepseek-rag"} / container_spec_memory_limit_bytes{container="deepseek-rag"}) * 100 > 90
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High memory usage"
+      description: "Memory usage is above 90% for more than 5 minutes."
+
+  - alert: LowDiskSpace
+    expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100 > 85
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Low disk space"
+      description: "Disk usage is above 85% for more than 10 minutes."
+
+  # Application Specific Alerts
+  - alert: TooManyFailedDocumentProcessing
+    expr: rate(document_processing_errors_total[5m]) > 0.1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High document processing failure rate"
+      description: "Document processing failure rate is above 10% for more than 5 minutes."
+
+  - alert: CacheHitRateTooLow
+    expr: cache_hit_ratio < 0.5
+    for: 15m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Low cache hit ratio"
+      description: "Cache hit ratio is below 50% for more than 15 minutes."
+
+  - alert: QueueBacklog
+    expr: async_task_queue_size > 100
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Large task queue backlog"
+      description: "Async task queue has more than 100 pending tasks for more than 10 minutes."
+
+- name: kubernetes-alerts
+  rules:
+  
+  # Kubernetes Resource Alerts
+  - alert: PodCrashLooping
+    expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Pod is crash looping"
+      description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is crash looping."
+
+  - alert: PodNotReady
+    expr: kube_pod_status_ready{condition="false"} == 1
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Pod not ready"
+      description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has been not ready for more than 10 minutes."
+
+  - alert: DeploymentReplicasMismatch
+    expr: kube_deployment_spec_replicas != kube_deployment_status_available_replicas
+    for: 15m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Deployment replicas mismatch"
+      description: "Deployment {{ $labels.deployment }} in namespace {{ $labels.namespace }} has {{ $labels.spec_replicas }} desired replicas but only {{ $labels.available_replicas }} are available."
+
+  - alert: PersistentVolumeUsageHigh
+    expr: (kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes) * 100 > 85
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Persistent volume usage high"
+      description: "Persistent volume {{ $labels.persistentvolumeclaim }} usage is above 85%."
+
+- name: security-alerts
+  rules:
+  
+  # Security Alerts
+  - alert: TooManyFailedAuthentications
+    expr: rate(authentication_failures_total[5m]) > 5
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High authentication failure rate"
+      description: "More than 5 authentication failures per second for more than 2 minutes."
+
+  - alert: SuspiciousFileUploads
+    expr: rate(suspicious_file_uploads_total[5m]) > 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Suspicious file upload detected"
+      description: "Suspicious file uploads detected in the last 5 minutes."
+
+  - alert: RateLimitViolations
+    expr: rate(rate_limit_violations_total[5m]) > 10
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High rate limit violations"
+      description: "More than 10 rate limit violations per second for more than 5 minutes."

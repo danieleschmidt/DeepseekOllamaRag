@@ -1,0 +1,84 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env
+pip-log.txt
+pip-delete-this-directory.txt
+.tox
+.coverage
+.coverage.*
+.pytest_cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.venv
+
+# Testing and CI
+.pytest_cache/
+htmlcov/
+junit-report.xml
+bandit-report.json
+safety-report.json
+.benchmarks/
+
+# Development
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Application data
+logs/*
+cache/*
+temp/*
+uploads/*
+*.pdf
+
+# Documentation
+docs/
+README.md
+ARCHITECTURE.md
+CONTRIBUTING.md
+PROJECT_CHARTER.md
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Kubernetes
+k8s/
+kubernetes/
+deploy/
+
+# CI/CD
+.github/
+.travis.yml
+.gitlab-ci.yml
+Jenkinsfile
+
+# Other
+*.env
+.env*
+*.key
+*.pem
+*.crt
