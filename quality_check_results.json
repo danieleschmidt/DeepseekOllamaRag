@@ -1,0 +1,260 @@
+{
+  "total_files": 21,
+  "syntax_valid": 21,
+  "syntax_errors": [],
+  "total_loc": 6710,
+  "file_details": {
+    "app.py": {
+      "syntax_ok": true,
+      "size_ok": true,
+      "size_info": "0.01MB",
+      "line_stats": {
+        "total": 337,
+        "code": 242,
+        "comments": 34,
+        "blank": 61
+      },
+      "import_count": 21
+    },
+    "async_processing.py": {
+      "syntax_ok": true,
+      "size_ok": true,
+      "size_info": "0.01MB",
+      "line_stats": {
+        "total": 459,
+        "code": 302,
+        "comments": 58,
+        "blank": 99
+      },
+      "import_count": 20
+    },
+    "caching.py": {
+      "syntax_ok": true,
+      "size_ok": true,
+      "size_info": "0.02MB",
+      "line_stats": {
+        "total": 515,
+        "code": 354,
+        "comments": 66,
+        "blank": 95
+      },
+      "import_count": 21
+    },
+    "config.py": {
+      "syntax_ok": true,
+      "size_ok": true,
+      "size_info": "0.00MB",
+      "line_stats": {
+        "total": 111,
+        "code": 80,
+        "comments": 10,
+        "blank": 21
+      },
+      "import_count": 5
+    },
+    "core.py": {
+      "syntax_ok": true,
+      "size_ok": true,
+      "size_info": "0.02MB",
+      "line_stats": {
+        "total": 434,
+        "code": 300,
+        "comments": 48,
+        "blank": 86
+      },
+      "import_count": 44
+    },
+    "exceptions.py": {
+      "syntax_ok": true,
+      "size_ok": true,
+      "size_info": "0.00MB",
+      "line_stats": {
+        "total": 57,
+        "code": 24,
+        "comments": 11,
+        "blank": 22
+      },
+      "import_count": 2
+    },
+    "logging_config.py": {
+      "syntax_ok": true,
+      "size_ok": true,
+      "size_info": "0.01MB",
+      "line_stats": {
+        "total": 173,
+        "code": 119,
+        "comments": 19,
+        "blank": 35
+      },
+      "import_count": 9
+    },
+    "monitoring.py": {
+      "syntax_ok": true,
+      "size_ok": true,
+      "size_info": "0.01MB",
+      "line_stats": {
+        "total": 336,
+        "code": 247,
+        "comments": 29,
+        "blank": 60
+      },
+      "import_count": 16
+    },
+    "resilience.py": {
+      "syntax_ok": true,
+      "size_ok": true,
+      "size_info": "0.01MB",
+      "line_stats": {
+        "total": 324,
+        "code": 225,
+        "comments": 33,
+        "blank": 66
+      },
+      "import_count": 19
+    },
+    "security.py": {
+      "syntax_ok": true,
+      "size_ok": true,
+      "size_info": "0.01MB",
+      "line_stats": {
+        "total": 342,
+        "code": 224,
+        "comments": 45,
+        "blank": 73
+      },
+      "import_count": 17
+    },
+    "utils.py": {
+      "syntax_ok": true,
+      "size_ok": true,
+      "size_info": "0.01MB",
+      "line_stats": {
+        "total": 188,
+        "code": 128,
+        "comments": 18,
+        "blank": 42
+      },
+      "import_count": 17
+    },
+    "validation.py": {
+      "syntax_ok": true,
+      "size_ok": true,
+      "size_info": "0.01MB",
+      "line_stats": {
+        "total": 326,
+        "code": 213,
+        "comments": 39,
+        "blank": 74
+      },
+      "import_count": 12
+    },
+    "test_research_system.py": {
+      "syntax_ok": true,
+      "size_ok": true,
+      "size_info": "0.02MB",
+      "line_stats": {
+        "total": 506,
+        "code": 322,
+        "comments": 63,
+        "blank": 121
+      },
+      "import_count": 33
+    },
+    "research_enhancements.py": {
+      "syntax_ok": true,
+      "size_ok": true,
+      "size_info": "0.03MB",
+      "line_stats": {
+        "total": 657,
+        "code": 395,
+        "comments": 112,
+        "blank": 150
+      },
+      "import_count": 25
+    },
+    "experimental_framework.py": {
+      "syntax_ok": true,
+      "size_ok": true,
+      "size_info": "0.03MB",
+      "line_stats": {
+        "total": 669,
+        "code": 437,
+        "comments": 84,
+        "blank": 148
+      },
+      "import_count": 25
+    },
+    "research_integration.py": {
+      "syntax_ok": true,
+      "size_ok": true,
+      "size_info": "0.01MB",
+      "line_stats": {
+        "total": 348,
+        "code": 230,
+        "comments": 33,
+        "blank": 85
+      },
+      "import_count": 14
+    },
+    "multimodal_rag.py": {
+      "syntax_ok": true,
+      "size_ok": true,
+      "size_info": "0.03MB",
+      "line_stats": {
+        "total": 844,
+        "code": 556,
+        "comments": 99,
+        "blank": 189
+      },
+      "import_count": 26
+    },
+    "adaptive_learning.py": {
+      "syntax_ok": true,
+      "size_ok": true,
+      "size_info": "0.03MB",
+      "line_stats": {
+        "total": 871,
+        "code": 588,
+        "comments": 101,
+        "blank": 182
+      },
+      "import_count": 24
+    },
+    "research_benchmarks.py": {
+      "syntax_ok": true,
+      "size_ok": true,
+      "size_info": "0.04MB",
+      "line_stats": {
+        "total": 937,
+        "code": 678,
+        "comments": 85,
+        "blank": 174
+      },
+      "import_count": 34
+    },
+    "enhanced_app.py": {
+      "syntax_ok": true,
+      "size_ok": true,
+      "size_info": "0.05MB",
+      "line_stats": {
+        "total": 1131,
+        "code": 818,
+        "comments": 104,
+        "blank": 209
+      },
+      "import_count": 36
+    },
+    "simple_quality_check.py": {
+      "syntax_ok": true,
+      "size_ok": true,
+      "size_info": "0.01MB",
+      "line_stats": {
+        "total": 332,
+        "code": 228,
+        "comments": 31,
+        "blank": 73
+      },
+      "import_count": 7
+    }
+  }
+}
